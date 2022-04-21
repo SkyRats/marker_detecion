@@ -9,7 +9,7 @@ def camera_test():
 	detection = MarkerDetection()
 
 	print("[INFO] starting video stream...")
-	vs = VideoStream(src=0).start()
+	vs = VideoStream(src=8).start()
 	time.sleep(2.0)
 
 	while True:
@@ -23,14 +23,14 @@ def camera_test():
 			cX = tag[1][0]
 			cY = tag[1][1]
 			id = tag[0]
-			cv2.circle(frame, (cX, cY), 4, (0, 0, 255), -1)
-			cv2.putText(frame, str(id),
-				(cX + 10, cY + 10),
-				cv2.FONT_HERSHEY_SIMPLEX,
-				0.5, (0, 255, 0), 2)
+			# cv2.circle(frame, (cX, cY), 4, (0, 0, 255), -1)
+			# cv2.putText(frame, str(id),
+				# (cX + 10, cY + 10),
+				# cv2.FONT_HERSHEY_SIMPLEX,
+				# 0.5, (0, 255, 0), 2)
 
 		# show the output frame
-		cv2.imshow("Frame", frame)
+		# cv2.imshow("Frame", frame)
 		key = cv2.waitKey(1) & 0xFF
 
 		# if the `q` key was pressed, break from the loop
@@ -38,7 +38,7 @@ def camera_test():
 			break
 
 	# cleanup
-	cv2.destroyAllWindows()
+	# cv2.destroyAllWindows()
 	vs.stop()
 
 camera_test()

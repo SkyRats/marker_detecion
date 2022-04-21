@@ -36,6 +36,8 @@ class MarkerDetection():
         self.TOL = 0.0140
         self.PID = 1/2000
         self.TARGET = (500, 400)
+        # self.TARGET = (int(cam.shape[0]/2), int(cam.shape[1]/2))
+        self.AREATARGET = 50000
 
 
     def calibration(self, cam, i):
@@ -163,10 +165,10 @@ class MarkerDetection():
     def aruco_detector(self, frame, id=None):
         
         # Resize frame and search for arucos
-        frame = imutils.resize(frame, width=1000)
-        cv2.imshow("frame", frame)
-        cv2.waitKey(0) 
-        cv2.destroyAllWindows() 
+        # frame = imutils.resize(frame, width=1000)
+        # cv2.imshow("frame", frame)
+        # cv2.waitKey(0) 
+        # cv2.destroyAllWindows() 
 
         (corners, ids, rejected) = cv2.aruco.detectMarkers(frame, self.arucoDict, parameters=self.arucoParams)
         lista_arucos = []
@@ -187,9 +189,9 @@ class MarkerDetection():
                 tL = (int(topLeft[0]), int(topLeft[1]))
 
                 rect = cv2.rectangle(frame, tL, bR, (255, 0, 0), 2)
-                cv2.imshow('rect', rect)
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
+                # cv2.imshow('rect', rect)
+                # cv2.waitKey(0)
+                # cv2.destroyAllWindows()
 
                 # Compute marker area on camera
                 area = ( (tR[0]*bR[1] - bR[0]*tR[1]) + (bR[0]*bL[1] - bL[0]*bR[1]) + (bL[0]*tL[1] - tL[0]*bL[1]) + (tL[0]*tR[0] - tR[0]*tL[1]) ) / 2
@@ -208,28 +210,16 @@ class MarkerDetection():
         return lista_arucos
 
 
-    def centralize_on_aruco(self, drone, tag, dz, aruco_id=None):
+    def centralize_on_aruco(self, drone, aruco_id=None):
+       
+        self.TARGET = (int(drone.cam.shape[0]/2), int(drone.cam.shape[1]/2))
 
         '''
         Function parameters:
         drone    -> MAV2 object
-        tag      -> (x, y, z) position of aruco
-        dz       -> desired drone relative height to aruco
         aruco_id -> only centralize on specific ID
 
         '''
-        # Go to (x, y, z) aproximate coordinates of the Aruco
-        goal_x = tag[0]
-        goal_y = tag[1]
-        goal_z = tag[2] + dz
-        drone.get_logger().info("Moving to aruco region...")
-        drone.go_to_local(goal_x, goal_y, goal_z)
-
-        # Wait for stabilization
-        drone.get_logger().info("On position, waiting for stabilization...")
-        time.sleep(5)
-        drone.get_logger().info("Drone stable, starting centralization..")
-
         is_centralize = False
         while not is_centralize:
             
@@ -247,14 +237,13 @@ class MarkerDetection():
                     timer = 0
 
                 if timer > 500:
-                    drone.set_vel(0, 0, 0.1)
+                    # drone.set_vel(0, 0, 0.1)
                     print("No visible Arucos, going up...")
                     timer = 0
                     no_detection += 1
 
                 if no_detection > 100:
                     print("Aruco not found! Going back to starting position...")
-                    drone.go_to_local(0, 0, goal_z)
                     return
 
                 timer += 1
@@ -266,14 +255,14 @@ class MarkerDetection():
             # Calculate the PID errors
             delta_x = self.TARGET[0] - aruco[1][0]
             delta_y = self.TARGET[1] - aruco[1][1]
-            delta_area = aruco[2] - 85000
+            delta_area = aruco[2] - self.AREATARGET
 
             # Adjust velocity
             drone.camera_pid(delta_x, delta_y, delta_area)
 
             # End centralization if the marker is close enough to the camera center
-            if ((delta_x)**2 + (delta_y)**2)**0.5 < 30:
-                drone.set_vel(0, 0, 0)
+            if ((delta_x)**2 + (delta_y)**2)**0.5 < 20:
+                # drone.set_vel(0, 0, 0)
                 is_centralize = True
                 print(f"Centralized! x: {delta_x} y: {delta_y}")
 
