@@ -48,6 +48,10 @@ class MarkerDetection():
             cv2.imshow('frame', self.frame)
 
 
+    def aruco_detection(self):
+        pass
+    
+
 if __name__ == "__main__":
     detectiontest = MarkerDetection()
     detectiontest.qrtest()
