@@ -3,6 +3,9 @@ from pyzbar.pyzbar import decode
 import cv2
 import argparse
 import sys
+from imutils.video import VideoStream	# Webcam
+import imutils				# Resize images
+import time				# Delay
 
 ARUCO_DICT = {
 	"DICT_5X5_50": cv2.aruco.DICT_5X5_50,
@@ -78,20 +81,94 @@ class MarkerDetection():
     def aruco_detection(self):
 
         self.frame = self.gen_aruco
+        self.detection = True
+
+        print("[INFO] starting video stream...")
+        vs = VideoStream(src=0).start()
+        time.sleep(2.0)
+
         #Load the dictionary that was used to generate the markers.
         dictionary = cv2.aruco.Dictionary_get(self.aruco_dic)
-        # Initialize the detector parameters using default values
-        parameters =  cv2.aruco.DetectorParameters_create()
-        # Detect the markers in the image
-        markerCorners, markerIds, rejectedCandidates = cv2.aruco.detectMarkers(self.frame, dictionary, parameters=parameters)
-        print("Marker corners\n", markerCorners)
-        self.aruco_id = markerIds[0][0]
-        print("ArUco ID = ", self.aruco_id)
+
+        arucoParams = cv2.aruco.DetectorParameters_create()
+
+        first_detection = True
+
+        while self.detection: #and self.det_number <= 150:
+
+            # grab the frame from the threaded video stream and resize it to have a maximum width of 1000 pixels
+            frame = vs.read()
+            frame = imutils.resize(frame, width=1000)
+
+            # detect ArUco markers in the input frame
+            (corners, ids, rejected) = cv2.aruco.detectMarkers(frame, dictionary, parameters=arucoParams)
+            
+            # verify *at least* one ArUco marker was detected
+            if len(corners) > 0:
+                
+                self.det_number += 1
+                # flatten the ArUco IDs list
+                ids = ids.flatten()
+
+                # loop over the detected ArUCo corners
+                for (markerCorner, markerID) in zip(corners, ids):
+
+                    # extract the marker corners
+                    corners = markerCorner.reshape((4, 2))
+                    (topLeft, topRight, bottomRight, bottomLeft) = corners
+
+                    # convert each of the (x, y)-coordinate pairs to integers
+                    topRight = (int(topRight[0]), int(topRight[1]))
+                    bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+                    bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+                    topLeft = (int(topLeft[0]), int(topLeft[1]))
+
+                    # draw the bounding box of the ArUCo detection
+                    cv2.line(frame, topLeft, topRight, (0, 255, 0), 2)
+                    cv2.line(frame, topRight, bottomRight, (0, 255, 0), 2)
+                    cv2.line(frame, bottomRight, bottomLeft, (0, 255, 0), 2)
+                    cv2.line(frame, bottomLeft, topLeft, (0, 255, 0), 2)
+            
+                    # compute and draw the center (x, y)-coordinates of the ArUco marker
+                    cX = int((topLeft[0] + bottomRight[0]) / 2.0)
+                    cY = int((topLeft[1] + bottomRight[1]) / 2.0)
+                    cv2.circle(frame, (cX, cY), 4, (0, 0, 255), -1)
+
+                    # draw the ArUco marker ID on the frame
+                    cv2.putText(frame, str(markerID),
+                        (topLeft[0], topLeft[1] - 15),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, (0, 255, 0), 2)
+
+                self.aruco_id = ids
+                number_of_arucos = len(self.aruco_id)
+                last_aruco_detected = self.aruco_id[number_of_arucos-1]
+                if first_detection:
+                    print("ArUco ID: ", self.aruco_id)
+                    first_detection = False
+                    old_arucos = self.aruco_id
+                for aruco in old_arucos:
+                    if last_aruco_detected != aruco:
+                        first_detection = True
+
+
+
+            # show the output frame
+            cv2.imshow("Frame", frame)
+            key = cv2.waitKey(1) & 0xFF
+
+            # if the `q` key was pressed, break from the loop
+            if key == ord("q"):
+                break
+
+        # cleanup
+        cv2.destroyAllWindows()
+        vs.stop()
 
 
 if __name__ == "__main__":
     detectiontest = MarkerDetection()
     #detectiontest.qrtest()
-    detectiontest.aruco_generator(5)
+    detectiontest.aruco_generator(10)
     
     detectiontest.aruco_detection()
