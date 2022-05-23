@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 def get_mask(hsv , lower_color , upper_color):
     lower = np.array(lower_color)
@@ -11,7 +13,6 @@ def get_mask(hsv , lower_color , upper_color):
 
 capture = cv2.VideoCapture(0)
 
-
 while True: 
     success, frame = capture.read()
     if success == False:
@@ -20,8 +21,18 @@ while True:
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     mask = get_mask(hsv, [160, 100, 20], [179, 255, 255]) + get_mask(hsv, [0, 100, 20], [10, 255, 255])
+
     
     result = cv2.bitwise_and(frame , frame , mask= mask)
+    
+    #plotting
+    
+    kernel = np.ones((30, 30), np.float32)
+    
+    result = cv2.dilate(result, kernel)
+    result = cv2.erode(result, kernel)
+    
+    
 
     cv2.imshow('frame', result)
 
