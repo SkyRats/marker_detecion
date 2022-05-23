@@ -1,7 +1,6 @@
 import numpy as np
 from pyzbar.pyzbar import decode
 import cv2
-
 import argparse
 import sys
 
@@ -58,24 +57,27 @@ class MarkerDetection():
             cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
             # Display the resulting frame
             cv2.imshow('frame', self.frame)
+            cv2.waitKey(0) 
+            cv2.destroyAllWindows()
 
 
     def aruco_generator(self, id):
         
         self.aruco_id = id
+        aruco_size = 800
+        border_size = int(aruco_size/15)
         # Load the predefined dictionary
         dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_250)
 
         # Generate the marker
         markerImage = np.zeros((200, 200), dtype=np.uint8)
-        markerImage = cv2.aruco.drawMarker(dictionary, self.aruco_id, 800, markerImage, 2)
-        cv2.imwrite("marker2.png", markerImage)
-        self.gen_aruco = "marker2.png"
-
+        markerImage = cv2.aruco.drawMarker(dictionary, self.aruco_id, aruco_size, markerImage, 1)
+        self.gen_aruco = cv2.copyMakeBorder(markerImage, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=[255, 255, 255])
+        cv2.imwrite("marker.png", self.gen_aruco)
 
     def aruco_detection(self):
 
-        self.frame = cv2.imread("/home/soph/skyrats_ws/src/marker_detecion/scripts/aruco2.png")
+        self.frame = self.gen_aruco
         #Load the dictionary that was used to generate the markers.
         dictionary = cv2.aruco.Dictionary_get(self.aruco_dic)
         # Initialize the detector parameters using default values
@@ -83,12 +85,13 @@ class MarkerDetection():
         # Detect the markers in the image
         markerCorners, markerIds, rejectedCandidates = cv2.aruco.detectMarkers(self.frame, dictionary, parameters=parameters)
         print("Marker corners\n", markerCorners)
-        print("MarkerIds\n", markerIds)
+        self.aruco_id = markerIds[0][0]
+        print("ArUco ID = ", self.aruco_id)
 
 
 if __name__ == "__main__":
     detectiontest = MarkerDetection()
     #detectiontest.qrtest()
-    detectiontest.aruco_generator(2)
+    detectiontest.aruco_generator(5)
     
     detectiontest.aruco_detection()
