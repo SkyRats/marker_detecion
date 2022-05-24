@@ -20,8 +20,7 @@ while True:
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    mask = get_mask(hsv, [160, 100, 20], [179, 255, 255]) + get_mask(hsv, [0, 100, 20], [10, 255, 255])
-
+    mask = get_mask(hsv, [18, 255, 64], [139, 255, 216])
     
     result = cv2.bitwise_and(frame , frame , mask= mask)
     
