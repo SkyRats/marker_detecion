@@ -26,10 +26,14 @@ class MarkerDetection():
         self.gen_aruco = None
         self.aruco_dic = cv2.aruco.DICT_5X5_250
         self.aruco_id = None
+        self.qr_x = 0
+        self.qr_y = 0
+        self.qr_w = 0
+        self.qr_h = 0
 
     def qrdetection(self, vid):
         ret, self.frame = vid.read()
-        while self.detection and self.det_number<=10:
+        while self.detection: # and self.det_number<=10:
             if self.qr_data != "":
                 self.det_number += 1
             ret, self.frame = vid.read()
@@ -44,24 +48,29 @@ class MarkerDetection():
                 cv2.rectangle(self.frame, (self.qr_x, self.qr_y), (self.qr_x + self.qr_w, self.qr_y + self.qr_h), (0, 0, 255), 2)
                 self.qr_data = barcode.data.decode("utf-8")
                 self.qr_type = barcode.type
-                print("QR Code info:\n", self.qr_data)
+                print("QR Code info: ", self.qr_data)
+            if self.qr_debug:
+                text = str(self.qr_data)
+                cv2.putText(self.frame, text, (self.qr_x, self.qr_y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+                            # show the output frame
+                cv2.imshow("Frame", self.frame)
+                key = cv2.waitKey(1) & 0xFF
+
+                # if the `q` key was pressed, break from the loop
+                if key == ord("q"):
+                    break
+
+        # cleanup
+        cv2.destroyAllWindows()
 
     def qrtest(self):
 
         webcam = cv2.VideoCapture(0)
         self.detection = True
-        self.qrdetection(webcam)
-        print("QR Code info:\n", self.qr_data)
-        webcam.release()
         self.qr_debug = True
-        if self.qr_debug:
-            text = str(self.qr_data)
-            cv2.putText(self.frame, text, (self.qr_x, self.qr_y - 10),
-            cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-            # Display the resulting frame
-            cv2.imshow('frame', self.frame)
-            cv2.waitKey(0) 
-            cv2.destroyAllWindows()
+        self.qrdetection(webcam)
+        webcam.release()        
 
 
     def aruco_generator(self, id):
@@ -80,11 +89,12 @@ class MarkerDetection():
 
     def aruco_detection(self):
 
-        self.frame = self.gen_aruco
+        #self.frame = self.gen_aruco
         self.detection = True
 
         print("[INFO] starting video stream...")
         vs = VideoStream(src=0).start()
+        print(type(vs))
         time.sleep(2.0)
 
         #Load the dictionary that was used to generate the markers.
@@ -147,11 +157,11 @@ class MarkerDetection():
                     print("ArUco ID: ", self.aruco_id)
                     first_detection = False
                     old_arucos = self.aruco_id
-                for aruco in old_arucos:
-                    if last_aruco_detected != aruco:
-                        first_detection = True
-
-
+                else:
+                    for old_aruco in old_arucos:
+                        for new_aruco in self.aruco_id:
+                            if old_aruco != new_aruco:
+                                first_detection = True
 
             # show the output frame
             cv2.imshow("Frame", frame)
@@ -168,7 +178,7 @@ class MarkerDetection():
 
 if __name__ == "__main__":
     detectiontest = MarkerDetection()
-    #detectiontest.qrtest()
-    detectiontest.aruco_generator(10)
+    detectiontest.qrtest()
+    #detectiontest.aruco_generator(10)
     
-    detectiontest.aruco_detection()
+    #detectiontest.aruco_detection()
