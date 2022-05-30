@@ -85,7 +85,7 @@ class MarkerDetection():
         markerImage = np.zeros((200, 200), dtype=np.uint8)
         markerImage = cv2.aruco.drawMarker(dictionary, self.aruco_id, aruco_size, markerImage, 1)
         self.gen_aruco = cv2.copyMakeBorder(markerImage, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=[255, 255, 255])
-        cv2.imwrite("marker.png", self.gen_aruco)
+        cv2.imwrite("markerID="+str(id)+".png", self.gen_aruco)
 
     def aruco_detection(self):
 
@@ -178,7 +178,11 @@ class MarkerDetection():
 
 if __name__ == "__main__":
     detectiontest = MarkerDetection()
-    detectiontest.qrtest()
-    #detectiontest.aruco_generator(10)
+    #detectiontest.qrtest()
+    detectiontest.aruco_generator(10)
+    detectiontest.aruco_generator(5)
+    detectiontest.aruco_generator(3)
+    detectiontest.aruco_generator(9)
+    detectiontest.aruco_generator(11)
     
     #detectiontest.aruco_detection()
