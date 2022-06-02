@@ -42,31 +42,27 @@ class MarkerDetection():
             if len(qr_result)>0:
                 print("QR Code being detected")
 
-            for barcode in qr_result:
+                for barcode in qr_result:
 
-                (self.qr_x, self.qr_y, self.qr_w, self.qr_h) = barcode.rect
-                cv2.rectangle(self.frame, (self.qr_x, self.qr_y), (self.qr_x + self.qr_w, self.qr_y + self.qr_h), (0, 0, 255), 2)
-                self.qr_data = barcode.data.decode("utf-8")
-                self.qr_type = barcode.type
-                print("QR Code info: ", self.qr_data)
+                    (self.qr_x, self.qr_y, self.qr_w, self.qr_h) = barcode.rect
+                    cv2.rectangle(self.frame, (self.qr_x, self.qr_y), (self.qr_x + self.qr_w, self.qr_y + self.qr_h), (0, 0, 255), 2)
+                    self.qr_data = barcode.data.decode("utf-8")
+                    self.qr_type = barcode.type
+                    print("QR Code info: ", self.qr_data)
+                    cv2.putText(self.frame, str(self.qr_data), (self.qr_x, self.qr_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
+            
             if self.qr_debug:
-                text = str(self.qr_data)
-                cv2.putText(self.frame, text, (self.qr_x, self.qr_y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-                            # show the output frame
                 cv2.imshow("Frame", self.frame)
-                key = cv2.waitKey(1) & 0xFF
 
-                # if the `q` key was pressed, break from the loop
-                if key == ord("q"):
-                    break
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
 
         # cleanup
         cv2.destroyAllWindows()
 
-    def qrtest(self):
+    def qrtest(self, cam_id):
 
-        webcam = cv2.VideoCapture(0)
+        webcam = cv2.VideoCapture(cam_id)
         self.detection = True
         self.qr_debug = True
         self.qrdetection(webcam)
@@ -178,11 +174,7 @@ class MarkerDetection():
 
 if __name__ == "__main__":
     detectiontest = MarkerDetection()
-    #detectiontest.qrtest()
-    detectiontest.aruco_generator(10)
-    detectiontest.aruco_generator(5)
-    detectiontest.aruco_generator(3)
-    detectiontest.aruco_generator(9)
-    detectiontest.aruco_generator(11)
+    detectiontest.qrtest(0) # recebe o id da camera a ser testada
+    #detectiontest.aruco_generator(10)
     
     #detectiontest.aruco_detection()
