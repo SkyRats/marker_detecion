@@ -20,12 +20,13 @@ class MarkerDetection():
 
         self.detection = False
         self.qr_data = ""
-        self.qr_debug = True
+        self.qr_debug = False
         self.frame = None
         self.det_number = 0
         self.gen_aruco = None
         self.aruco_dic = cv2.aruco.DICT_5X5_250
         self.aruco_id = None
+        self.aruco_debug = False
         self.qr_x = 0
         self.qr_y = 0
         self.qr_w = 0
@@ -87,8 +88,6 @@ class MarkerDetection():
 
         #self.frame = self.gen_aruco
         self.detection = True
-
-        print("[INFO] starting video stream...")
         vs = VideoStream(src=0).start()
         print(type(vs))
         time.sleep(2.0)
@@ -100,7 +99,7 @@ class MarkerDetection():
 
         first_detection = True
 
-        while self.detection: #and self.det_number <= 150:
+        while self.detection and self.det_number <10: #and self.det_number <= 150:
 
             # grab the frame from the threaded video stream and resize it to have a maximum width of 1000 pixels
             frame = vs.read()
