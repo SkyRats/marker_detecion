@@ -61,13 +61,14 @@ class MarkerDetection():
         # cleanup
         cv2.destroyAllWindows()
 
-    def qrtest(self, cam_id):
-
-        webcam = cv2.VideoCapture(cam_id)
+    def qrtest(self, cam, cam_id=None):
+        cam_id = 0
+        #webcam = cv2.VideoCapture(cam_id)
+        camera = cv2.VideoCapture(cam)
         self.detection = True
         self.qr_debug = True
-        self.qrdetection(webcam)
-        webcam.release()        
+        self.qrdetection(camera)
+        camera.release()        
 
 
     def aruco_generator(self, id):
@@ -84,13 +85,12 @@ class MarkerDetection():
         self.gen_aruco = cv2.copyMakeBorder(markerImage, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=[255, 255, 255])
         cv2.imwrite("markerID="+str(id)+".png", self.gen_aruco)
 
-    def aruco_detection(self):
+    def aruco_detection(self, cam):
 
         #self.frame = self.gen_aruco
         self.detection = True
-        vs = VideoStream(src=0).start()
-        print(type(vs))
-        time.sleep(2.0)
+        #vs = VideoStream(cam_id).start()
+        vs = cam
 
         #Load the dictionary that was used to generate the markers.
         dictionary = cv2.aruco.Dictionary_get(self.aruco_dic)
@@ -102,7 +102,7 @@ class MarkerDetection():
         while self.detection and self.det_number <10: #and self.det_number <= 150:
 
             # grab the frame from the threaded video stream and resize it to have a maximum width of 1000 pixels
-            frame = vs.read()
+            frame = cam
             frame = imutils.resize(frame, width=1000)
 
             # detect ArUco markers in the input frame
@@ -168,7 +168,6 @@ class MarkerDetection():
 
         # cleanup
         cv2.destroyAllWindows()
-        vs.stop()
 
 
 if __name__ == "__main__":
