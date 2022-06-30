@@ -17,6 +17,7 @@ def run():
     rclpy.get_global_executor()
     mav = MAV2()
     detection = MarkerDetection()
+    detection.camera_topic = "/camera/image_raw"
     cam_id = 4
     actual_x = mav.drone_pose.pose.position.x
     actual_y = mav.drone_pose.pose.position.y
