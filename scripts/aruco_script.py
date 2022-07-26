@@ -7,9 +7,9 @@ sys.path.insert(0,'/home/alessandro/skyrats_ws2/src/mavbase2')
 from MAV2 import MAV2
 
 
-# Utilize a função centralize_on_aruco fornecendo o mav e as coordenadas do aruco
-# Ao fornecer também um ID, o drone centraliza apenas no aruco desejado
-# Isso pode ser útil no caso de uma varredura
+# Use the function centralize_on_aruco giving the mav object and the Marker coordinates
+# If you give and ID as input as well, the drone will search only for the desired Aruco
+# This can be really useful in case of a guided region sweep
 
 rclpy.init()
 rclpy.create_node("ArucoDetection")
