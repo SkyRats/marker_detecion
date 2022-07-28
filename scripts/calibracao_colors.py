@@ -1,3 +1,7 @@
+# IMPORTANT
+# INSTALL VERSION 4.2.0 OF OPENCV: pip install opencv-python==4.2.0.34
+# sudo apt-get install scrot
+
 from turtle import color, onclick
 from warnings import resetwarnings
 import cv2
