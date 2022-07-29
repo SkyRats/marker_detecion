@@ -98,6 +98,11 @@ def on_press_keyboard(key):
             reset()
         if key.char == 'e':
             setandoCliques()
+        if key.char == 'f':
+            set_red()
+        if key.char == 'g':
+            set_green()
+            
     except AttributeError:
         pass
 
@@ -110,6 +115,30 @@ def reset ():
     cv2.setTrackbarPos('VMax', 'Parâmetros', 255)
 
     print("Máscara resetada!")
+    global cliques
+    cliques = 0
+    
+def set_red(): 
+    cv2.setTrackbarPos('HMin', 'Parâmetros', 0)
+    cv2.setTrackbarPos('SMin', 'Parâmetros', 118)
+    cv2.setTrackbarPos('VMin', 'Parâmetros', 144)
+    cv2.setTrackbarPos('HMax', 'Parâmetros', 4)
+    cv2.setTrackbarPos('SMax', 'Parâmetros', 227)
+    cv2.setTrackbarPos('VMax', 'Parâmetros', 255)
+
+    print("Máscara calibrada em vermelho")
+    global cliques
+    cliques = 0
+
+def set_green(): 
+    cv2.setTrackbarPos('HMin', 'Parâmetros', 60)
+    cv2.setTrackbarPos('SMin', 'Parâmetros', 82)
+    cv2.setTrackbarPos('VMin', 'Parâmetros', 83)
+    cv2.setTrackbarPos('HMax', 'Parâmetros', 97)
+    cv2.setTrackbarPos('SMax', 'Parâmetros', 184)
+    cv2.setTrackbarPos('VMax', 'Parâmetros', 211)
+
+    print("Máscara calibrada em verde")
     global cliques
     cliques = 0
 
