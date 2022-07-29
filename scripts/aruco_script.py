@@ -3,7 +3,7 @@ import time
 import rclpy
 from markerdetection import MarkerDetection
 import sys
-sys.path.insert(0,'/home/alessandro/skyrats_ws2/src/mavbase2')
+sys.path.insert(0,'/home/' + os.environ["USER"] + '/skyrats_ws2/src/mavbase2')
 from MAV2 import MAV2
 
 
