@@ -263,12 +263,17 @@ class MarkerDetection():
                     y = int(M['m01']/M['m00'])
                     shapes.append((x, y))
 
-        def cluster(shapes):
+        def cluster(lista):
+            lista_cluster = []
+            return find_cluster(lista, lista_cluster)
+
+        def find_cluster(shapes, lista_cluster):
             cluster = []
             LIM = 30
             i = 0
             while i < len(shapes):
                 coord1 = shapes[i]
+                other = []
                 cluster = [coord1]
                 x_tot = coord1[0]
                 y_tot = coord1[1]
@@ -282,14 +287,22 @@ class MarkerDetection():
                         cluster.append(coord2)
                         x_tot += coord2[0]
                         y_tot += coord2[1]
+                    else:
+                        other.append(coord2)
                 if len(cluster) >= 4:
-                    return (int(x_tot/len(cluster)), int(y_tot/len(cluster)))
+                    lista_cluster.append((int(x_tot/len(cluster)), int(y_tot/len(cluster))))
+                    if len(other) >= 4:
+                        return find_cluster(other, lista_cluster)
+                    else:
+                        return lista_cluster
                 i += 1
-            return None
+            return
 
-        center = cluster(shapes)
-        if center != None:
-            cv2.circle(img, center, 8, (0, 0, 255), -1)
+        centers = cluster(shapes)
+        if centers != None:
+            for center in centers:
+                if center != None:
+                    cv2.circle(img, center, 8, (0, 0, 255), -1)
         result = imutils.resize(img, width=800)
         return result
 
@@ -404,7 +417,7 @@ if __name__ == "__main__":
         vs = VideoStream(src=0).start()
         time.sleep(2.0)
 
-        teste1 = [[74, 89, 112], [122, 255, 255], [10, 9]]
+        teste1 = [[96, 70, 102], [125, 214, 237], [10, 5]]
         detection = MarkerDetection()
         parameters = detection.calibracao(vs, teste1)
 
