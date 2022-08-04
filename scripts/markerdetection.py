@@ -1,4 +1,3 @@
-from imutils.video import VideoStream
 import numpy as np
 from pyzbar.pyzbar import decode
 import cv2
