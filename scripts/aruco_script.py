@@ -22,7 +22,7 @@ pose_vec = [(1, 1, 0), (5.2, 4.8, 0), (7.2, 0.3, 0), (1, 6, 0), (-2.8, 7.2, 0)]
 rclpy.spin_once(mav)
 
 for tag in pose_vec:
-    detection.centralize_on_aruco(mav, tag)
+    detection.centralize_on_aruco(mav, tag, 2.0)
     time.sleep(5)
 
 
