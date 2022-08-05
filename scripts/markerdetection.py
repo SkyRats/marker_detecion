@@ -1,10 +1,11 @@
-from imutils.video import VideoStream	
-import imutils				
 import numpy as np
 from pyzbar.pyzbar import decode
 import cv2
 import time			
 import rclpy
+
+from CBRbase.crossdetection import aply_filters, find_potentials, verify
+
 
 ARUCO_DICT = {
 	"DICT_5X5_50": cv2.aruco.DICT_5X5_50,
@@ -36,6 +37,76 @@ class MarkerDetection():
         self.PID = 1/2000
         self.TARGET = (500, 400)
 
+
+    def calibration(self, cam, i):
+
+        def nothing(x):
+            pass
+
+        cv2.namedWindow("Parâmetros")
+        cv2.createTrackbar('h', 'Parâmetros',i[0][0],255,nothing)
+        cv2.createTrackbar('s', 'Parâmetros',i[0][1],255,nothing)
+        cv2.createTrackbar('v', 'Parâmetros',i[0][2],255,nothing)
+
+        cv2.createTrackbar('H', 'Parâmetros',i[1][0],255,nothing)
+        cv2.createTrackbar('S', 'Parâmetros',i[1][1],255,nothing)
+        cv2.createTrackbar('V', 'Parâmetros',i[1][2],255,nothing)
+
+        cv2.createTrackbar('Blur', 'Parâmetros', i[2][0], 100, nothing)
+        cv2.createTrackbar('Erode', 'Parâmetros', i[2][1], 100, nothing)
+        cv2.createTrackbar('Dilate', 'Parâmetros', i[2][2], 100, nothing)
+
+        while True:
+
+            img = cam.read()
+
+            h = cv2.getTrackbarPos('h', 'Parâmetros')
+            s = cv2.getTrackbarPos('s', 'Parâmetros')
+            v = cv2.getTrackbarPos('v', 'Parâmetros')
+
+            H = cv2.getTrackbarPos('H', 'Parâmetros')
+            S = cv2.getTrackbarPos('S', 'Parâmetros')
+            V = cv2.getTrackbarPos('V', 'Parâmetros')
+
+            blur_size = cv2.getTrackbarPos('Blur', 'Parâmetros')
+            erode_size = cv2.getTrackbarPos('Erode', 'Parâmetros')
+            dilate_size = cv2.getTrackbarPos('Dilate', 'Parâmetros')
+
+            blur_value = (blur_size, blur_size)
+            erode_kernel = np.ones((erode_size, erode_size), np.float32)
+            dilate_kernel = np.ones((dilate_size, dilate_size), np.float32)
+
+            lower = [h, s, v]
+            upper = [H, S, V]
+
+            lower_color = np.array(lower)
+            upper_color = np.array(upper)
+
+            if blur_size != 0:
+                blur = cv2.blur(img,blur_value)
+            else:
+                blur = img
+
+            hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
+            mask = cv2.inRange(hsv, lower_color, upper_color)
+
+            imgMask = cv2.bitwise_and(blur, blur, mask=mask)
+            
+            dilate = cv2.dilate(imgMask, dilate_kernel)
+            erode = cv2.erode(dilate, erode_kernel)
+
+            cv2.imshow('color calibration', erode)
+
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("q"):
+                break
+
+        cv2.destroyAllWindows()
+        parameters = [[h, s, v], [H, S, V], [blur_size, erode_size, dilate_size]]
+        print(parameters)
+        return parameters
+
+
     def qrdetection(self, vid):
         ret, self.frame = vid.read()
         while self.detection: # and self.det_number<=10:
@@ -65,6 +136,7 @@ class MarkerDetection():
         # cleanup
         cv2.destroyAllWindows()
 
+
     def qrtest(self, cam, cam_id=None):
         cam_id = 0
         #webcam = cv2.VideoCapture(cam_id)
@@ -76,13 +148,11 @@ class MarkerDetection():
 
 
     def aruco_generator(self, id):
-        
         self.aruco_id = id
         aruco_size = 800
         border_size = int(aruco_size/15)
         # Load the predefined dictionary
         dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_250)
-
         # Generate the marker
         markerImage = np.zeros((200, 200), dtype=np.uint8)
         markerImage = cv2.aruco.drawMarker(dictionary, self.aruco_id, aruco_size, markerImage, 1)
@@ -97,6 +167,7 @@ class MarkerDetection():
         cv2.imshow("frame", frame)
         cv2.waitKey(0) 
         cv2.destroyAllWindows() 
+
         (corners, ids, rejected) = cv2.aruco.detectMarkers(frame, self.arucoDict, parameters=self.arucoParams)
         lista_arucos = []
 
@@ -124,8 +195,8 @@ class MarkerDetection():
                 area = ( (tR[0]*bR[1] - bR[0]*tR[1]) + (bR[0]*bL[1] - bL[0]*bR[1]) + (bL[0]*tL[1] - tL[0]*bL[1]) + (tL[0]*tR[0] - tR[0]*tL[1]) ) / 2
 
                 # Find the Marker center
-                cX = int((tR[0] + bR[0]) / 2.0)
-                cY = int((tL[1] + bR[1]) / 2.0)
+                cX = int((tR[0] + bL[0]) / 2.0)
+                cY = int((tR[1] + bL[1]) / 2.0)
 
                 # Append detected aruco data
                 if id == None:
@@ -137,12 +208,22 @@ class MarkerDetection():
         return lista_arucos
 
 
-    def centralize_on_aruco(self, drone, tag, aruco_id=None):
+    def centralize_on_aruco(self, drone, tag, dz, aruco_id=None):
 
+        '''
+        Function parameters:
+        drone    -> MAV2 object
+        tag      -> (x, y, z) position of aruco
+        dz       -> desired drone relative height to aruco
+        aruco_id -> only centralize on specific ID
+
+        '''
         # Go to (x, y, z) aproximate coordinates of the Aruco
         goal_x = tag[0]
         goal_y = tag[1]
-        goal_z = tag[2] + 0.5
+        goal_z = tag[2] + 2.0
+        goal_z = tag[2] + dz
+
         drone.get_logger().info("Moving to aruco region...")
         drone.go_to_local(goal_x, goal_y, goal_z)
 
@@ -189,22 +270,8 @@ class MarkerDetection():
             delta_y = self.TARGET[1] - aruco[1][1]
             delta_area = aruco[2] - 85000
 
-            # Centralization PID
-            vel_x = delta_y * self.PID
-            vel_y = delta_x * self.PID
-            vel_z = delta_area / 500000
-
-            # Set PID tolerances
-            if abs(vel_x) < self.TOL:
-                vel_x = 0.0
-            if abs(vel_y) < self.TOL:
-                vel_y = 0.0
-            if abs(vel_z) < self.TOL:
-                vel_z = 0.0
-            
-            # Set drone instant velocity
-            drone.set_vel(vel_x, vel_y, vel_z)
-            print(f"Set_vel -> x: {vel_x} y: {vel_y} z: {vel_z}")
+            # Adjust velocity
+            drone.camera_pid(delta_x, delta_y, delta_area)
 
             # End centralization if the marker is close enough to the camera center
             if ((delta_x)**2 + (delta_y)**2)**0.5 < 30:
@@ -229,16 +296,12 @@ class MarkerDetection():
 
         img = cv2.blur(img,(2,2))
 
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, lower_color, upper_color)
 
-        img_mask = cv2.bitwise_and(img, img, mask=mask)
+    def base_detection(self, img, parameters):
 
-        erode_kernel = np.ones((erode, erode), np.float32)
-        dilate_kernel = np.ones((dilate, dilate), np.float32)
+        img_filter = aply_filters(img, parameters)
 
-        dilate = cv2.dilate(img_mask, dilate_kernel)
-        erode = cv2.erode(dilate, erode_kernel)
+        list_of_potentials = find_potentials(img_filter)
 
         gray = cv2.cvtColor(erode, cv2.COLOR_BGR2GRAY)
         # gray = cv2.Canny(erode, 200, 300)
@@ -253,6 +316,7 @@ class MarkerDetection():
         i = 0
         shapes = []
         # list for storing names of shapes
+        result = []
         for contour in contours:
             if i == 0:
                 i = 1
@@ -263,15 +327,19 @@ class MarkerDetection():
                 contour, 0.01 * cv2.arcLength(contour, True), True)
             
             if len(approx) == 4 and cv2.arcLength(contour,True) > 500:
+                result.append((x,y))
 
-                # finding center point of shape
-                M = cv2.moments(contour)
+        for potential in list_of_potentials:
+
+            if verify(potential, img_filter):
+                M = cv2.moments(potential)
                 if M['m00'] != 0.0:
                     x = int(M['m10']/M['m00'])
                     y = int(M['m01']/M['m00'])
                     shapes.append([(x, y), len(approx)])
             
         print(shapes)
+        return result
 
         def cluster(shapes):
             cluster = []
@@ -438,3 +506,4 @@ if __name__ == "__main__":
 
     # aruco_test()
     #cross_test()
+                   
