@@ -94,6 +94,9 @@ class MarkerDetection():
         
         # Resize frame and search for arucos
         frame = imutils.resize(frame, width=1000)
+        cv2.imshow("frame", frame)
+        cv2.waitKey(0) 
+        cv2.destroyAllWindows() 
         (corners, ids, rejected) = cv2.aruco.detectMarkers(frame, self.arucoDict, parameters=self.arucoParams)
         lista_arucos = []
 
@@ -111,6 +114,11 @@ class MarkerDetection():
                 bR = (int(bottomRight[0]), int(bottomRight[1]))
                 bL = (int(bottomLeft[0]), int(bottomLeft[1]))
                 tL = (int(topLeft[0]), int(topLeft[1]))
+
+                rect = cv2.rectangle(frame, tL, bR, (255, 0, 0), 2)
+                cv2.imshow('rect', rect)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
 
                 # Compute marker area on camera
                 area = ( (tR[0]*bR[1] - bR[0]*tR[1]) + (bR[0]*bL[1] - bL[0]*bR[1]) + (bL[0]*tL[1] - tL[0]*bL[1]) + (tL[0]*tR[0] - tR[0]*tL[1]) ) / 2
@@ -134,7 +142,7 @@ class MarkerDetection():
         # Go to (x, y, z) aproximate coordinates of the Aruco
         goal_x = tag[0]
         goal_y = tag[1]
-        goal_z = tag[2] + 2.0
+        goal_z = tag[2] + 0.5
         drone.get_logger().info("Moving to aruco region...")
         drone.go_to_local(goal_x, goal_y, goal_z)
 
@@ -219,7 +227,7 @@ class MarkerDetection():
         lower_color = np.array(lower)
         upper_color = np.array(upper)
 
-        img = cv2.blur(img,(5,5))
+        img = cv2.blur(img,(2,2))
 
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, lower_color, upper_color)
@@ -232,14 +240,14 @@ class MarkerDetection():
         dilate = cv2.dilate(img_mask, dilate_kernel)
         erode = cv2.erode(dilate, erode_kernel)
 
-        # gray = cv2.cvtColor(erode, cv2.COLOR_BGR2GRAY)
-        gray = cv2.Canny(erode, 200, 300)
+        gray = cv2.cvtColor(erode, cv2.COLOR_BGR2GRAY)
+        # gray = cv2.Canny(erode, 200, 300)
         
         # setting threshold of gray image
-        _, threshold = cv2.threshold(gray, 0, 10, cv2.THRESH_BINARY)
+        res, threshold = cv2.threshold(gray, 120, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         
         # using a findContours() function
-        contours, _ = cv2.findContours(
+        contours, res = cv2.findContours(
             threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         
         i = 0
@@ -254,26 +262,23 @@ class MarkerDetection():
             approx = cv2.approxPolyDP(
                 contour, 0.01 * cv2.arcLength(contour, True), True)
             
-            if len(approx) < 20 and cv2.arcLength(contour,True) > 500:
+            if len(approx) == 4 and cv2.arcLength(contour,True) > 500:
 
                 # finding center point of shape
                 M = cv2.moments(contour)
                 if M['m00'] != 0.0:
                     x = int(M['m10']/M['m00'])
                     y = int(M['m01']/M['m00'])
-                    shapes.append((x, y))
+                    shapes.append([(x, y), len(approx)])
+            
+        print(shapes)
 
-        def cluster(lista):
-            lista_cluster = []
-            return find_cluster(lista, lista_cluster)
-
-        def find_cluster(shapes, lista_cluster):
+        def cluster(shapes):
             cluster = []
             LIM = 30
             i = 0
             while i < len(shapes):
-                coord1 = shapes[i]
-                other = []
+                coord1 = shapes[i][0]
                 cluster = [coord1]
                 x_tot = coord1[0]
                 y_tot = coord1[1]
@@ -282,28 +287,20 @@ class MarkerDetection():
                 y_min = coord1[1] - LIM
                 y_max = coord1[1] + LIM
                 for j in range(len(shapes) - (i+1)):
-                    coord2 = shapes[j + (i+1)]
+                    coord2 = shapes[j + (i+1)][0]
                     if x_min <= coord2[0] <= x_max and y_min <= coord2[1] <= y_max:
                         cluster.append(coord2)
                         x_tot += coord2[0]
                         y_tot += coord2[1]
-                    else:
-                        other.append(coord2)
-                if len(cluster) >= 4:
-                    lista_cluster.append((int(x_tot/len(cluster)), int(y_tot/len(cluster))))
-                    if len(other) >= 4:
-                        return find_cluster(other, lista_cluster)
-                    else:
-                        return lista_cluster
+                if len(cluster) >= 2:
+                    return (int(x_tot/len(cluster)), int(y_tot/len(cluster)))
                 i += 1
-            return
+            return None
 
-        centers = cluster(shapes)
-        if centers != None:
-            for center in centers:
-                if center != None:
-                    cv2.circle(img, center, 8, (0, 0, 255), -1)
-        result = imutils.resize(img, width=800)
+        center = cluster(shapes)
+        if center != None:
+            cv2.circle(gray, center, 8, (0, 0, 255), -1)
+        result = imutils.resize(res, width=800)
         return result
 
 
@@ -373,6 +370,9 @@ class MarkerDetection():
 
 
 if __name__ == "__main__":
+    detection = MarkerDetection()
+    img = cv2.imread('/home/software/skyrats_ws2/src/marker_detection/scripts/print2.png')
+    detection.aruco_detector(img)
 
     def aruco_test():
         detection = MarkerDetection()
@@ -417,7 +417,7 @@ if __name__ == "__main__":
         vs = VideoStream(src=0).start()
         time.sleep(2.0)
 
-        teste1 = [[96, 70, 102], [125, 214, 237], [10, 5]]
+        teste1 = [[82, 186, 0], [119, 255, 255], [0, 4]]
         detection = MarkerDetection()
         parameters = detection.calibracao(vs, teste1)
 
@@ -437,4 +437,4 @@ if __name__ == "__main__":
         cv2.destroyAllWindows()
 
     # aruco_test()
-    cross_test()
+    #cross_test()
