@@ -208,24 +208,15 @@ class MarkerDetection():
         return lista_arucos
 
 
-    def centralize_on_aruco(self, drone, tag, dz, aruco_id=None):
+    def centralize_on_aruco(self, drone, dz, aruco_id=None):
 
         '''
         Function parameters:
         drone    -> MAV2 object
-        tag      -> (x, y, z) position of aruco
         dz       -> desired drone relative height to aruco
         aruco_id -> only centralize on specific ID
 
         '''
-        # Go to (x, y, z) aproximate coordinates of the Aruco
-        goal_x = tag[0]
-        goal_y = tag[1]
-        goal_z = tag[2] + 2.0
-        goal_z = tag[2] + dz
-
-        drone.get_logger().info("Moving to aruco region...")
-        drone.go_to_local(goal_x, goal_y, goal_z)
 
         # Wait for stabilization
         drone.get_logger().info("On position, waiting for stabilization...")
