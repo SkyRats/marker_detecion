@@ -295,7 +295,8 @@ class MarkerDetection():
                 if M['m00'] != 0.0:
                     x = int(M['m10']/M['m00'])
                     y = int(M['m01']/M['m00'])
-                    result.append((x,y))
+		    if (x,y) not in result:	
+                    	result.append((x,y))
 
         return result
                    
