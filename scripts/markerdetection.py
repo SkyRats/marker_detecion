@@ -1,5 +1,5 @@
 import numpy as np
-from pyzbar.pyzbar import decode
+# from pyzbar.pyzbar import decode
 import cv2
 import time			
 import rclpy
@@ -276,7 +276,7 @@ class MarkerDetection():
                 drone.set_vel(0, 0, 0)
                 is_centralize = True
                 print(f"Centralized! x: {delta_x} y: {delta_y}")
-                
+
             rclpy.spin_once(drone)
         return markerID
 
@@ -295,8 +295,13 @@ class MarkerDetection():
                 if M['m00'] != 0.0:
                     x = int(M['m10']/M['m00'])
                     y = int(M['m01']/M['m00'])
-		    if (x,y) not in result:	
-                    	result.append((x,y))
+                    new_cross = True
+                    tol = 3
+                    for point in result:
+                        if (point[0]-tol) <= x <= (point[0]+tol) and (point[1]-tol) <= y <= (point[1]+tol):
+                            new_cross = False
+                    if new_cross:
+                        result.append((x,y))
 
         return result
                    
