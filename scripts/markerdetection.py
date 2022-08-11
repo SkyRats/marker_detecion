@@ -208,15 +208,22 @@ class MarkerDetection():
         return lista_arucos
 
 
-    def centralize_on_aruco(self, drone, dz, aruco_id=None):
+    def centralize_on_aruco(self, drone, tag, dz, aruco_id=None):
 
         '''
         Function parameters:
         drone    -> MAV2 object
+        tag      -> (x, y, z) position of aruco
         dz       -> desired drone relative height to aruco
         aruco_id -> only centralize on specific ID
 
         '''
+        # Go to (x, y, z) aproximate coordinates of the Aruco
+        goal_x = tag[0]
+        goal_y = tag[1]
+        goal_z = tag[2] + dz
+        drone.get_logger().info("Moving to aruco region...")
+        drone.go_to_local(goal_x, goal_y, goal_z)
 
         # Wait for stabilization
         drone.get_logger().info("On position, waiting for stabilization...")
@@ -272,20 +279,6 @@ class MarkerDetection():
                 
             rclpy.spin_once(drone)
         return markerID
-    
-
-    def cross_detector(self, img, p):
-
-        lower = p[0]
-        upper = p[1]
-
-        erode = p[2][0]
-        dilate = p[2][1]
-
-        lower_color = np.array(lower)
-        upper_color = np.array(upper)
-
-        img = cv2.blur(img,(2,2))
 
 
     def base_detection(self, img, parameters):
@@ -294,32 +287,7 @@ class MarkerDetection():
 
         list_of_potentials = find_potentials(img_filter)
 
-        gray = cv2.cvtColor(erode, cv2.COLOR_BGR2GRAY)
-        # gray = cv2.Canny(erode, 200, 300)
-        
-        # setting threshold of gray image
-        res, threshold = cv2.threshold(gray, 120, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        
-        # using a findContours() function
-        contours, res = cv2.findContours(
-            threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        
-        i = 0
-        shapes = []
-        # list for storing names of shapes
         result = []
-        for contour in contours:
-            if i == 0:
-                i = 1
-                continue
-        
-            # cv2.approxPloyDP() function to approximate the shape
-            approx = cv2.approxPolyDP(
-                contour, 0.01 * cv2.arcLength(contour, True), True)
-            
-            if len(approx) == 4 and cv2.arcLength(contour,True) > 500:
-                result.append((x,y))
-
         for potential in list_of_potentials:
 
             if verify(potential, img_filter):
@@ -327,174 +295,7 @@ class MarkerDetection():
                 if M['m00'] != 0.0:
                     x = int(M['m10']/M['m00'])
                     y = int(M['m01']/M['m00'])
-                    shapes.append([(x, y), len(approx)])
-            
-        print(shapes)
+                    result.append((x,y))
+
         return result
-
-        def cluster(shapes):
-            cluster = []
-            LIM = 30
-            i = 0
-            while i < len(shapes):
-                coord1 = shapes[i][0]
-                cluster = [coord1]
-                x_tot = coord1[0]
-                y_tot = coord1[1]
-                x_min = coord1[0] - LIM
-                x_max = coord1[0] + LIM
-                y_min = coord1[1] - LIM
-                y_max = coord1[1] + LIM
-                for j in range(len(shapes) - (i+1)):
-                    coord2 = shapes[j + (i+1)][0]
-                    if x_min <= coord2[0] <= x_max and y_min <= coord2[1] <= y_max:
-                        cluster.append(coord2)
-                        x_tot += coord2[0]
-                        y_tot += coord2[1]
-                if len(cluster) >= 2:
-                    return (int(x_tot/len(cluster)), int(y_tot/len(cluster)))
-                i += 1
-            return None
-
-        center = cluster(shapes)
-        if center != None:
-            cv2.circle(gray, center, 8, (0, 0, 255), -1)
-        result = imutils.resize(res, width=800)
-        return result
-
-
-    def calibracao(self, camera, i):
-        
-        def nothing(x):
-            pass
-
-        cv2.namedWindow("Parâmetros")
-        cv2.createTrackbar('h', 'Parâmetros',i[0][0],255,nothing)
-        cv2.createTrackbar('s', 'Parâmetros',i[0][1],255,nothing)
-        cv2.createTrackbar('v', 'Parâmetros',i[0][2],255,nothing)
-
-        cv2.createTrackbar('H', 'Parâmetros',i[1][0],255,nothing)
-        cv2.createTrackbar('S', 'Parâmetros',i[1][1],255,nothing)
-        cv2.createTrackbar('V', 'Parâmetros',i[1][2],255,nothing)
-
-        cv2.createTrackbar('Erode', 'Parâmetros', i[2][0], 100, nothing)
-        cv2.createTrackbar('Dilate', 'Parâmetros', i[2][1], 100, nothing)
-
-        while True:
-            
-            img = camera.read()
-
-            h = cv2.getTrackbarPos('h', 'Parâmetros')
-            s = cv2.getTrackbarPos('s', 'Parâmetros')
-            v = cv2.getTrackbarPos('v', 'Parâmetros')
-
-            H = cv2.getTrackbarPos('H', 'Parâmetros')
-            S = cv2.getTrackbarPos('S', 'Parâmetros')
-            V = cv2.getTrackbarPos('V', 'Parâmetros')
-
-            erode_size = cv2.getTrackbarPos('Erode', 'Parâmetros')
-            dilate_size = cv2.getTrackbarPos('Dilate', 'Parâmetros')
-
-            erode_kernel = np.ones((erode_size, erode_size), np.float32)
-            dilate_kernel = np.ones((dilate_size, dilate_size), np.float32)
-
-            lower = [h, s, v]
-            upper = [H, S, V]
-
-            lower_color = np.array(lower)
-            upper_color = np.array(upper)
-
-            hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-            mask = cv2.inRange(hsv, lower_color, upper_color)
-
-            imgMask = cv2.bitwise_and(img, img, mask=mask)
-            
-            result = cv2.dilate(imgMask, dilate_kernel)
-            result = cv2.erode(result, erode_kernel)
-
-            result = imutils.resize(result, width=1000)
-            # displaying the image after drawing contours
-            cv2.imshow('shapes', result)
-            key = cv2.waitKey(1) & 0xFF
-
-            # if the `q` key was pressed, break from the loop
-            if key == ord("q"):
-                break
-        
-        # cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        parameters = [[h, s, v], [H, S, V], [erode_size, dilate_size]]
-        print(parameters)
-        return parameters
-
-
-if __name__ == "__main__":
-    detection = MarkerDetection()
-    img = cv2.imread('/home/software/skyrats_ws2/src/marker_detection/scripts/print2.png')
-    detection.aruco_detector(img)
-
-    def aruco_test():
-        detection = MarkerDetection()
-
-        print("[INFO] starting video stream...")
-        vs = VideoStream(src=0).start()
-        time.sleep(2.0)
-
-        while True:
-            frame = vs.read()
-            list_arucos = detection.aruco_detector(frame)
-            if len(list_arucos) > 0:
-                print(list_arucos)
-
-            for tag in list_arucos:
-                cX = tag[1][0]
-                cY = tag[1][1]
-                id = tag[0]
-                cv2.circle(frame, (cX, cY), 4, (0, 0, 255), -1)
-                cv2.putText(frame, str(id),
-                    (cX + 10, cY + 10),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5, (0, 255, 0), 2)
-
-            # show the output frame
-            cv2.imshow("Frame", frame)
-            key = cv2.waitKey(1) & 0xFF
-
-            # if the `q` key was pressed, break from the loop
-            if key == ord("q"):
-                break
-
-        # cleanup
-        cv2.destroyAllWindows()
-        vs.stop()
-    
-    
-    def cross_test():
-        detection = MarkerDetection()
-
-        print("[INFO] starting video stream...")
-        vs = VideoStream(src=0).start()
-        time.sleep(2.0)
-
-        teste1 = [[82, 186, 0], [119, 255, 255], [0, 4]]
-        detection = MarkerDetection()
-        parameters = detection.calibracao(vs, teste1)
-
-        while True:
-            cam = vs.read()
-            result = detection.cross_detector(cam, parameters)
-
-            # displaying the image after drawing contours
-            cv2.imshow('shapes', result)
-            key = cv2.waitKey(1) & 0xFF
-
-            # if the `q` key was pressed, break from the loop
-            if key == ord("q"):
-                break
-        
-        # cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-    # aruco_test()
-    #cross_test()
                    
