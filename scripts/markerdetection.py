@@ -293,4 +293,23 @@ class MarkerDetection():
                         result.append((x,y))
 
         return result
+
+
+    def aruco_semi_detector(self, img, parameters):
+
+        img_filter = aply_filters(img, parameters)
+
+        list_of_potentials = find_potentials(img_filter)
+
+        result = []
+        for potential in list_of_potentials:
+
+            M = cv2.moments(potential)
+            if M['m00'] != 0.0:
+                x = int(M['m10']/M['m00'])
+                y = int(M['m01']/M['m00'])
+                result.append((x,y))
+
+        return result
+
                    
