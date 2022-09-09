@@ -33,6 +33,7 @@ def axis_test():
 				# Draw Axis
 				cv2.aruco.drawAxis(frame, cameraMatrix, distCoeffs, rvec, tvec, 0.1)
 				print(tvec)
+				print("x: " + str(-tvec[0][0][1]) + "; y: " + str(-tvec[0][0][0]) + "; z: " + str(-tvec[0][0][2]))
 
 		# show the output frame
 		cv2.imshow("Frame", frame)
