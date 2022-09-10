@@ -7,11 +7,11 @@ def axis_test():
 	aruco_dic = cv2.aruco.DICT_5X5_1000
 	arucoDict = cv2.aruco.Dictionary_get(aruco_dic)
 	arucoParams = cv2.aruco.DetectorParameters_create()
-
-	f = open('./CameraCalibration.pckl', 'rb')
+	
+	f = open('/home/' + os.environ["USER"] + '/skyrats_ws2/src/marker_detection/scripts/CameraCalibration.pckl', 'rb')
 	(cameraMatrix, distCoeffs, _, _) = pickle.load(f)
 
-	print("[INFO] starting video stream...")
+	print("Starting video stream...")
 	cam = cv2.VideoCapture(2)
 	cam.set(3, 640)
 	cam.set(4, 480)
@@ -32,7 +32,7 @@ def axis_test():
 				cv2.aruco.drawDetectedMarkers(frame, corners)
 				# Draw Axis
 				cv2.aruco.drawAxis(frame, cameraMatrix, distCoeffs, rvec, tvec, 0.1)
-				print(tvec)
+				#print(tvec)
 				print("x: " + str(-tvec[0][0][1]) + "; y: " + str(-tvec[0][0][0]) + "; z: " + str(-tvec[0][0][2]))
 
 		# show the output frame

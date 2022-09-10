@@ -3,6 +3,8 @@ import numpy as np
 import cv2
 import time			
 import rclpy
+import pickle
+import os
 
 from CBRbase.crossdetection import aply_filters, find_potentials, verify
 
@@ -312,4 +314,50 @@ class MarkerDetection():
 
         return result
 
-                   
+    def aruco_pose(self, img, DEBUG = False): 
+        
+        ##### TO DO #####
+        #REMEMBER TO SET THE CAMERA RESOLUTION AT MAV2
+
+        #arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_1000)
+        arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_5X5_50)
+        arucoParams = cv2.aruco.DetectorParameters_create()
+
+        f = open('/home/' + os.environ["USER"] + '/skyrats_ws2/src/marker_detection/scripts/CameraCalibration.pckl', 'rb')
+        (cameraMatrix, distCoeffs, _, _) = pickle.load(f)
+
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, arucoDict,
+        parameters=arucoParams,
+        cameraMatrix=cameraMatrix,
+        distCoeff=distCoeffs)
+        if len(corners) > 0:
+            for i in range(0, len(ids)):
+				# Estimate pose of each marker and return the values rvec and tvec---(different from those of camera coefficients)
+                rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[i], 0.2, cameraMatrix, distCoeffs)
+				# Draw a square around the markers
+                cv2.aruco.drawDetectedMarkers(img, corners)
+				# Draw Axis
+                cv2.aruco.drawAxis(img, cameraMatrix, distCoeffs, rvec, tvec, 0.1)
+				#print(tvec)
+                x = -tvec[0][0][1]
+                y = -tvec[0][0][0]
+                z = -tvec[0][0][2]
+                if DEBUG == True:
+                    # show the output frame
+                    cv2.imshow("frame", img)
+                    key = cv2.waitKey(1) & 0xFF
+                    print("x: " + str(x) + "; y: " + str(y) + "; z: " + str(z))
+                return (x,y,z)
+        else:
+            return None
+
+
+if __name__ == "__main__":
+    marker = MarkerDetection()
+    cam = cv2.VideoCapture(2)
+    cam.set(3, 640)
+    cam.set(4, 480)
+    while True:
+        success, img = cam.read()
+        marker.aruco_pose(img, DEBUG=True)
