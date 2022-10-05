@@ -1,8 +1,8 @@
 import numpy as np
-# from pyzbar.pyzbar import decode
+from pyzbar.pyzbar import decode
 import cv2
 import time			
-import rclpy
+#import rclpy
 import pickle
 import os
 
@@ -141,13 +141,10 @@ class MarkerDetection():
         cv2.destroyAllWindows()
 
 
-    def qrtest(self, cam, cam_id=None):
-        cam_id = 0
-        #webcam = cv2.VideoCapture(cam_id)
-        camera = cv2.VideoCapture(cam)
+    def qrtest(self, cam, cam_id=0):
         self.detection = True
         self.qr_debug = True
-        self.qrdetection(camera)
+        self.qrdetection(cam)
         camera.release()        
 
 
@@ -355,9 +352,12 @@ class MarkerDetection():
 
 if __name__ == "__main__":
     marker = MarkerDetection()
-    cam = cv2.VideoCapture(2)
-    cam.set(3, 640)
-    cam.set(4, 480)
-    while True:
-        success, img = cam.read()
-        marker.aruco_pose(img, DEBUG=True)
+    cam = cv2.VideoCapture(4)
+
+    #cam.set(3, 640)
+    #cam.set(4, 480)
+    #while True:
+    #    success, img = cam.read()
+    #    marker.aruco_pose(img, DEBUG=True)
+    marker.qr_debug = True
+    marker.qrtest(cam)
