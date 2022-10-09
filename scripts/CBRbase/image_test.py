@@ -226,3 +226,4 @@ print(f"Foram encontradas {soma} bases na imagem.")
 print(final)
 cv2.imshow('final result', img)
 cv2.waitKey(0)
+
