@@ -4,6 +4,8 @@ import cv2
 from imutils.perspective import four_point_transform
 
 
+DEBUG = True
+
 def calibration(img, i):
 
     def nothing(x):
@@ -86,19 +88,22 @@ def aply_filters(img, p, otsu):
     # Aplica Blur
     if p[2][0] != 0:
         img = cv2.blur(img,blur)
-    cv2.imshow('blur', img)
-    cv2.waitKey(0)
+    if DEBUG:
+        cv2.imshow('blur', img)
+        cv2.waitKey(0)
 
     # Transforma em hsv
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    cv2.imshow('hsv', hsv)
-    cv2.waitKey(0)
+    if DEBUG:
+        cv2.imshow('hsv', hsv)
+        cv2.waitKey(0)
 
     # Aplica filtro de cores
     mask = cv2.inRange(hsv, lower_color, upper_color)
     img_mask = cv2.bitwise_and(img, img, mask=mask)
-    cv2.imshow('mask', img_mask)
-    cv2.waitKey(0)
+    if DEBUG:
+        cv2.imshow('mask', img_mask)
+        cv2.waitKey(0)
 
     # Erode e dilate
     erode_kernel = np.ones((erode, erode), np.float32)
@@ -107,12 +112,14 @@ def aply_filters(img, p, otsu):
     erode = cv2.erode(dilate, erode_kernel)
 
     # Otsu thresholding
-    gray = cv2.cvtColor(erode, cv2.COLOR_BGR2GRAY)
-    ret, threshold = cv2.threshold(gray, otsu, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    cv2.imshow('otsu', threshold)
-    cv2.waitKey(0)
+    # gray = cv2.cvtColor(erode, cv2.COLOR_BGR2GRAY)
+    # ret, threshold = cv2.threshold(gray, otsu, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    canny = cv2.Canny(erode, 200, 300)
+    if DEBUG:
+        cv2.imshow('canny', canny)
+        cv2.waitKey(0)
 
-    return threshold
+    return canny
 
 
 def find_potentials(image):
@@ -156,9 +163,10 @@ def cluster(shapes):
 def verify(shape, image):
 
     square = four_point_transform(image, shape.reshape(4, 2))
-    cv2.imshow('warp perspective', square)
-    cv2.waitKey(0)
-    cv2.imwrite('scripts/CBRbase/zoom.png', square)
+    if DEBUG:
+        cv2.imshow('warp perspective', square)
+        cv2.waitKey(0)
+        cv2.imwrite('scripts/CBRbase/zoom.png', square)
     contours, ret = cv2.findContours(
         square, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -178,7 +186,7 @@ def verify(shape, image):
     return cluster(shapes)
 
 
-img = cv2.imread('CBRbase/example.jpeg')
+img = cv2.imread('scripts/CBRbase/example.jpeg')
 img = imutils.resize(img, width=900)
 
 cv2.imshow('frame', img)
@@ -196,6 +204,8 @@ gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 ret, threshold = cv2.threshold(gray, 120, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
 soma = 0
+final = []
+tol = 3
 for potential in list_of_potentials:
 
     if verify(potential, threshold):
@@ -204,9 +214,15 @@ for potential in list_of_potentials:
             x = int(M['m10']/M['m00'])
             y = int(M['m01']/M['m00'])
             cv2.circle(img, (x, y), 4, (0, 0, 255), -1)
+            new_cross = True
+            for point in final:
+                if (point[0]-tol) <= x <= (point[0]+tol) and (point[1]-tol) <= y <= (point[1]+tol):
+                    new_cross = False
+            if new_cross:
+                final.append((x,y))
+                soma += 1
 
-        soma += 1
-
-print(soma)
+print(f"Foram encontradas {soma} bases na imagem.")
+print(final)
 cv2.imshow('final result', img)
 cv2.waitKey(0)
